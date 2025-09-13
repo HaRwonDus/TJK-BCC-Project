@@ -1,0 +1,13 @@
+
+#Telegram-bot
+
+
+#
+
+# Data & Analytics
+pandas==2.2.2          # работа с таблицами
+numpy==1.26.4          # числовые операции
+
+#
+
+requests
