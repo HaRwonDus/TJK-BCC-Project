@@ -25,20 +25,32 @@ class Analytics:
     def analyze_client(self, client_code):
         """Аналитика по конкретному клиенту"""
         transfers = self.load_csv(f"client_{client_code}_transfers_3m.csv")
-        transactions = self.load_csv(f"client_{client_code}_transaction_3m.csv")
+        transactions = self.load_csv(f"client_{client_code}_transactions_3m.csv")
 
         transfers = self.clean_data(transfers)
         transactions = self.clean_data(transactions)
 
+        # Получаем базовую информацию о клиенте
+        name = transfers["name"].iloc[0] if not transfers.empty else transactions["name"].iloc[0]
+        city = transfers["city"].iloc[0] if not transfers.empty else transactions["city"].iloc[0]
+        status = transfers["status"].iloc[0] if not transfers.empty else transactions["status"].iloc[0]
+        
+        # Вычисляем средний месячный баланс (примерная оценка)
+        total_income = transfers.loc[transfers["direction"] == "in", "amount"].sum()
+        avg_monthly_balance = total_income / 3  # 3 месяца данных
+        
         result = {
             "client_code": client_code,
-            "name": transfers["name"].iloc[0] if not transfers.empty else transactions["name"].iloc[0],
-            "city": transfers["city"].iloc[0] if not transfers.empty else transactions["city"].iloc[0],
+            "name": name,
+            "city": city,
+            "status": status,
+            "age": 30,  # По умолчанию, так как возраст не указан в данных
+            "avg_monthly_balance_KZT": avg_monthly_balance,
             "total_transfer_in": transfers.loc[transfers["direction"] == "in", "amount"].sum(),
             "total_transfer_out": transfers.loc[transfers["direction"] == "out", "amount"].sum(),
             "transaction_sum": transactions["amount"].sum(),
             "transaction_avg": transactions["amount"].mean(),
-            "top_categories": transactions.groupby("category")["amount"].sum().sort_values(ascending=False).head(3).to_dict()
+            "top_categories": transactions.groupby("category")["amount"].sum().sort_values(ascending=False).head(5).to_dict()
         }
         return result
 
