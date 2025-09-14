@@ -3,13 +3,33 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import csv
 
+# Глобальные переменные для ленивой загрузки
 model_name = "EleutherAI/gpt-neo-125M"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
+tokenizer = None
+model = None
+
+def _load_model():
+    """Ленивая загрузка модели ИИ"""
+    global tokenizer, model
+    if tokenizer is None or model is None:
+        print("🤖 Загружаем ИИ модель...")
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(model_name)
+        print("✅ ИИ модель загружена!")
 
 def llm_generate_push(name, product, top_categories, benefit_sum):
+    """Генерирует пуш-уведомление с помощью ИИ"""
+    # Загружаем модель при первом вызове
+    _load_model()
+    
+    # Обрабатываем категории
     if isinstance(top_categories, str):
         top_categories = [cat.strip() for cat in top_categories.split(",")]
+    elif not top_categories:
+        top_categories = ["Общие траты"]
+    
+    # Ограничиваем количество категорий
+    top_categories = top_categories[:3]
 
     prompt = f"""
 Имя клиента: {name}
@@ -28,39 +48,29 @@ def llm_generate_push(name, product, top_categories, benefit_sum):
 
 Push: """
     
-    input_ids = tokenizer(prompt, return_tensors="pt").input_ids
-    with torch.no_grad():
-        generated_ids = model.generate(
-            input_ids,
-            max_length=input_ids.shape[1] + 50,
-            do_sample=True,
-            top_k=50,
-            top_p=0.95,
-            temperature=0.8,
-            pad_token_id=tokenizer.eos_token_id,
-            num_return_sequences=1
-        )
-    output = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-    push = output.split("Push:")[1].strip().split("\n")[0]
-    return push
-
-
-input_csv = "input_clients.csv" # Файл от Айбара
-df = pd.read_csv(input_csv)
-
-pushes = []
-for _, row in df.iterrows():
-    push = llm_generate_push(
-        name=row["name"],
-        product=row["product"],
-        top_categories=row["top_categories"],
-        benefit_sum=row["benefit_sum"]
-    )
-    pushes.append(push)
-
-df["push_notification"] = pushes
-
-final_df = df[["client_code", "product", "push_notification"]]
-final_df.to_csv("final_push_notifications.csv", index=False, encoding="utf-8")
-
-print("Файл сохранён")
+    try:
+        input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+        with torch.no_grad():
+            generated_ids = model.generate(
+                input_ids,
+                max_length=input_ids.shape[1] + 50,
+                do_sample=True,
+                top_k=50,
+                top_p=0.95,
+                temperature=0.8,
+                pad_token_id=tokenizer.eos_token_id,
+                num_return_sequences=1
+            )
+        output = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
+        push = output.split("Push:")[1].strip().split("\n")[0]
+        
+        # Проверяем, что пуш не пустой
+        if not push or len(push.strip()) < 10:
+            return f"{name}, рекомендуем {product}. Оформить сейчас."
+        
+        return push
+        
+    except Exception as e:
+        print(f"⚠️ Ошибка ИИ генерации: {e}")
+        # Fallback уведомление
+        return f"{name}, рекомендуем {product}. Оформить сейчас."
