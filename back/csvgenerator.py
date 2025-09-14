@@ -9,13 +9,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ai.analytics import Analytics
 from ai.product_analyzer import ProductAnalyzer
-from ai.push_generator import PushGenerator
+from ai.recommendations import llm_generate_push
 
 class CSVGenerator:
     def __init__(self, data_input_path="data_intput", data_output_path="data_output"):
         self.analytics = Analytics(data_input_path, data_output_path)
         self.product_analyzer = ProductAnalyzer()
-        self.push_generator = PushGenerator()
         
     def process_all_clients(self):
         """Обрабатывает всех клиентов и генерирует CSV с рекомендациями"""
@@ -34,9 +33,16 @@ class CSVGenerator:
                 # Анализируем продукты и выбираем лучший
                 best_product = self.product_analyzer.analyze_products(client_data)
                 
-                # Генерируем пуш-уведомление
-                push_notification = self.push_generator.generate_push(
-                    client_data, best_product
+                # Генерируем пуш-уведомление с помощью ИИ
+                # Подготавливаем данные для ИИ
+                top_categories = list(client_data['top_categories'].keys())[:3]  # Топ-3 категории
+                benefit_sum = best_product['score'] * 1000  # Примерная выгода в тенге
+                
+                push_notification = llm_generate_push(
+                    name=client_data['name'],
+                    product=best_product['name'],
+                    top_categories=top_categories,
+                    benefit_sum=benefit_sum
                 )
                 
                 # Добавляем результат

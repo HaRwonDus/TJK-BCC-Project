@@ -1,13 +1,15 @@
 
-#Telegram-bot
-
-
-#
+# TJK-BCC-Project - Система персонализированных рекомендаций банковских продуктов
 
 # Data & Analytics
 pandas==2.2.2          # работа с таблицами
 numpy==1.26.4          # числовые операции
 
-#
+# AI & Machine Learning
+transformers==4.36.0   # для работы с языковыми моделями
+torch==2.1.0           # PyTorch для ИИ
+accelerate==0.24.0     # ускорение ИИ моделей
 
-requests
+# Utilities
+requests==2.31.0       # HTTP запросы
+pathlib2==2.3.7        # работа с путями (для старых версий Python)
